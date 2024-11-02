@@ -1,4 +1,3 @@
-// app/screen/styles.ts
 import styled from 'styled-components/native';
 
 export const Container = styled.View`
@@ -6,6 +5,7 @@ export const Container = styled.View`
   justify-content: center;
   align-items: center;
   padding: 16px;
+  background-color: #7048d1;
 `;
 
 export const Title = styled.Text`
@@ -15,9 +15,14 @@ export const Title = styled.Text`
 `;
 
 export const StyledInput = styled.TextInput`
-  width: 100%;
+  width: 250px;
   padding: 12px;
   margin-bottom: 16px;
   border: 1px solid #ccc;
   border-radius: 8px;
+`;
+
+export const ErrorMessage = styled.Text`
+  color: red;
+  margin-bottom: 10px;
 `;
