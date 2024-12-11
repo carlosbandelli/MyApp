@@ -6,9 +6,7 @@ import {
   Appbar,
   ActivityIndicator,
   Checkbox,
-  Button,
   TextInput,
-  Icon,
   Snackbar,
   IconButton,
 } from 'react-native-paper';
@@ -17,10 +15,9 @@ import { useQuery } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '@/src/store/authStore';
 import api from '@/src/api';
-import { ScrollView, View, Dimensions } from 'react-native';
-import FabButton from '@/app/components/productFab';
-import FabAnimated from '@/app/components/animatedFabComponent';
-import FabProduct from '@/app/components/productFab';
+import { ScrollView, View, Dimensions, Linking } from 'react-native';
+import FabProduct, { formatBrlCoin } from '@/app/components/productFab';
+import { StyledTotalValue } from './ListDetailsScreen.styles';
 
 interface Product {
   id: number;
@@ -58,6 +55,7 @@ const ListDetailsScreen = () => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [price, setPrice] = useState('');
 
   const fetchListDetails = async (): Promise<ListDetails> => {
     await loadTokenFromStorage();
@@ -78,6 +76,11 @@ const ListDetailsScreen = () => {
     setIsProcessing(processing);
   };
 
+  const handlePriceChange = (value: string) => {
+    const formattedValue = formatBrlCoin(value);
+    setPrice(formattedValue);
+  };
+
   const updateProduct = async (productId: number) => {
     const editedProduct = editedProducts[productId];
     if (!editedProduct) return;
@@ -88,7 +91,11 @@ const ListDetailsScreen = () => {
     try {
       const updatedData = {
         name: editedProduct.name?.trim() || '',
-        price: editedProduct.price ? parseFloat(editedProduct.price) : 0,
+        price: editedProduct.price
+          ? parseFloat(
+              editedProduct.price.replace(/[^\d,]/g, '').replace(',', '.'),
+            ) || 0.0
+          : 0.0,
         quantity: editedProduct.quantity
           ? parseFloat(editedProduct.quantity)
           : 0,
@@ -157,11 +164,10 @@ const ListDetailsScreen = () => {
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: value,
+        [field]: field === 'price' ? formatBrlCoin(value) : value,
       },
     }));
   };
-
   const handleDeleteProduct = async (productId: number) => {
     setLoading(productId);
     showSnackbar('Aguardando resposta do servidor...', true);
@@ -180,6 +186,25 @@ const ListDetailsScreen = () => {
       console.error('Error deleting product:', error);
     } finally {
       setLoading(null);
+    }
+  };
+
+  const shareList = async () => {
+    const message = `Chegou sua lista!\n\n${listDetails?.name}\nDetalhes da lista:\n${listDetails?.products
+      .map(
+        (product) =>
+          `Produto: ${product?.name} | Qtd: ${product?.quantity} | Preço: R$${product?.price.toFixed(2)}`,
+      )
+      .join('\n')}`;
+
+    try {
+      await Linking.openURL(`whatsapp://send?text=${message}`);
+      showSnackbar('Lista enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar lista:', error);
+      showSnackbar(
+        'Erro ao enviar lista. Verifique sua conexão e tente novamente.',
+      );
     }
   };
 
@@ -221,14 +246,25 @@ const ListDetailsScreen = () => {
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={listDetails?.name} />
+        <IconButton
+          icon="whatsapp"
+          size={24}
+          onPress={shareList}
+          style={{ marginRight: 20 }}
+          mode="contained-tonal"
+          animated={true}
+        />
       </Appbar.Header>
       <Surface style={{ padding: 8, flex: 1, backgroundColor: '#7048d1' }}>
         <Text variant="headlineMedium" style={{ marginBottom: 8 }}>
           Detalhes da Lista
         </Text>
-        <Text variant="titleMedium" style={{ marginBottom: 16 }}>
+        <StyledTotalValue
+          totalValue={listDetails?.totalValue}
+          style={{ marginBottom: 16 }}
+        >
           Valor Total: R$ {listDetails?.totalValue.toFixed(2)}
-        </Text>
+        </StyledTotalValue>
 
         <View style={{ height: tableHeight }}>
           <ScrollView style={{ height: '100%' }}>
@@ -247,11 +283,11 @@ const ListDetailsScreen = () => {
                   <DataTable.Title
                     style={{
                       width: 70,
-                      paddingLeft: 8,
+                      paddingLeft: 2,
                       backgroundColor: '#968BAE',
                     }}
                   >
-                    <Text>Select</Text>
+                    <Text>Selecione</Text>
                   </DataTable.Title>
                   <DataTable.Title
                     style={{
@@ -260,7 +296,7 @@ const ListDetailsScreen = () => {
                       backgroundColor: '#968BAE',
                     }}
                   >
-                    <Text>Nome</Text>
+                    <Text>Produto</Text>
                   </DataTable.Title>
                   <DataTable.Title
                     numeric
@@ -268,7 +304,8 @@ const ListDetailsScreen = () => {
                       width: 100,
                       paddingHorizontal: 20,
                       display: 'flex',
-                      justifyContent: 'center',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
                       backgroundColor: '#968BAE',
                     }}
                   >
@@ -373,29 +410,70 @@ const ListDetailsScreen = () => {
                       <DataTable.Cell
                         numeric
                         style={{
-                          width: 100,
-                          paddingHorizontal: 20,
+                          width: 120,
+                          paddingHorizontal: 10,
                           display: 'flex',
-                          justifyContent: 'center',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
                           backgroundColor: '#968BAE',
                         }}
                       >
                         {isEditable ? (
-                          <TextInput
-                            mode="outlined"
-                            keyboardType="numeric"
-                            style={{ width: 80 }}
-                            value={editedProduct.quantity ?? ''}
-                            onChangeText={(value) =>
-                              handleInputChange('quantity', value, product.id)
-                            }
-                          />
+                          <>
+                            {/* Botão de Decremento */}
+                            <IconButton
+                              icon="minus"
+                              size={20}
+                              onPress={() => {
+                                const newQuantity = Math.max(
+                                  0,
+                                  parseFloat(editedProduct.quantity ?? '0') - 1,
+                                );
+                                handleInputChange(
+                                  'quantity',
+                                  newQuantity.toString(),
+                                  product.id,
+                                );
+                              }}
+                              disabled={loading === product.id}
+                            />
+
+                            {/* Exibir o Valor da Quantidade */}
+                            <Text style={{ marginHorizontal: 8 }}>
+                              {editedProduct.quantity ?? '0'}
+                            </Text>
+
+                            {/* Botão de Incremento */}
+                            <IconButton
+                              icon="plus"
+                              size={20}
+                              onPress={() => {
+                                const newQuantity =
+                                  parseFloat(editedProduct.quantity ?? '0') + 1;
+                                handleInputChange(
+                                  'quantity',
+                                  newQuantity.toString(),
+                                  product.id,
+                                );
+                              }}
+                              disabled={loading === product.id}
+                            />
+                          </>
                         ) : (
-                          <Text style={{ opacity: isSelected ? 0.5 : 1 }}>
+                          <Text
+                            style={{
+                              opacity: isSelected ? 0.5 : 1,
+                              display: 'flex',
+                              marginRight: 'auto',
+                              marginLeft: 'auto',
+                            }}
+                          >
                             {product.quantity}
                           </Text>
                         )}
                       </DataTable.Cell>
+
                       <DataTable.Cell
                         numeric
                         style={{
@@ -410,7 +488,8 @@ const ListDetailsScreen = () => {
                           <TextInput
                             mode="outlined"
                             keyboardType="numeric"
-                            style={{ width: 80 }}
+                            label="R$ 0,00"
+                            style={{ width: 100 }} // Aumentei um pouco a largura para acomodar o formato
                             value={editedProduct.price ?? ''}
                             onChangeText={(value) =>
                               handleInputChange('price', value, product.id)
@@ -418,7 +497,7 @@ const ListDetailsScreen = () => {
                           />
                         ) : (
                           <Text style={{ opacity: isSelected ? 0.5 : 1 }}>
-                            R$ {product.price.toFixed(2)}
+                            {product.price.toFixed(2)}
                           </Text>
                         )}
                       </DataTable.Cell>

@@ -11,8 +11,8 @@ export const Container = styled.View`
 
 export const FormContainer = styled.View<FormContainerProps>`
   position: absolute;
-  bottom: ${({ fabPosition }) => fabPosition + 100}px;
-  left: -180px;
+  bottom: ${({ fabPosition }) => fabPosition + 130}px;
+  left: -160px;
   right: 50px;
   z-index: 90;
   width: 90%;
@@ -22,7 +22,7 @@ export const FormContainer = styled.View<FormContainerProps>`
 export const FabContainer = styled.View`
   position: absolute;
   bottom: 75px;
-  left: 100px;
+  left: 50px;
 
   z-index: 100;
 `;

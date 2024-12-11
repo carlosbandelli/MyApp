@@ -1,0 +1,41 @@
+{
+  "build": {
+    "development": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Debug",
+        "simulator": true
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release",
+        "distribution": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release",
+        "distribution": "internal"
+      }
+    }
+  },
+  "cli": {
+    "version": ">= 7.0.0"
+  }
+}

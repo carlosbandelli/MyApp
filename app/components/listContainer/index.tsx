@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -27,7 +27,8 @@ interface ScrollInfo {
 }
 
 const ListContainer = () => {
-  const { loadTokenFromStorage, token } = useAuthStore();
+  const { loadTokenFromStorage, token, isRefreshing, setIsRefreshing } =
+    useAuthStore();
   const [visible, setVisible] = useState(true);
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -92,12 +93,18 @@ const ListContainer = () => {
     await refetch();
   };
 
+  useEffect(() => {
+    if (isRefreshing) {
+      handleRefresh();
+    }
+  }, [isRefreshing]);
+
   const handleRefresh = async (): Promise<void> => {
     setIsLoading(true);
     await refetch();
     setIsLoading(false);
+    setIsRefreshing(false); // Reseta o refreshing após o refresh
   };
-
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } =
@@ -160,14 +167,6 @@ const ListContainer = () => {
         scrollEventThrottle={16}
         scrollEnabled={scrollInfo.isScrollEnabled}
       />
-      <Button
-        mode="contained-tonal"
-        loading={isLoading}
-        onPress={handleRefresh}
-        style={{ marginHorizontal: 10, marginBottom: 10 }}
-      >
-        Atualizar
-      </Button>
     </View>
   );
 };

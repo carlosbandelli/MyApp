@@ -1,13 +1,12 @@
 import { registerUser } from '@/src/auth/auth';
-import React from 'react';
-import { Alert } from 'react-native';
+import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, TextInput, Text } from 'react-native-paper';
+import { Button, TextInput, Text, Snackbar } from 'react-native-paper';
 import { Container, Title } from '../styles';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuthStore } from '@/src/store/authStore'; // Importa o estado global
+import { useAuthStore } from '@/src/store/authStore';
 import { useRouter } from 'expo-router';
 
 const schema = z.object({
@@ -27,8 +26,12 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const Register = () => {
-  const { setIsLoading, isLoading } = useAuthStore(); // Pega o estado de loading e a função para atualizar
+  const { setIsLoading, isLoading } = useAuthStore();
   const router = useRouter();
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -40,12 +43,18 @@ const Register = () => {
   const handleRegister = async (data: FormData) => {
     setIsLoading(true);
     const { username, password } = data;
+
+    // Converte o username para maiúsculas antes de enviá-lo ao backend
+    const usernameUpperCase = username.toUpperCase();
+
     try {
-      await registerUser(username, password);
-      Alert.alert('Registro bem-sucedido');
+      await registerUser(usernameUpperCase, password);
+      setSnackbarMessage('Registro bem-sucedido!');
+      setSnackbarVisible(true);
       router.push('/screen/Home');
     } catch (error) {
-      Alert.alert('Erro no registro', 'Falha ao registrar.');
+      setSnackbarMessage('Erro no registro. Tente novamente.');
+      setSnackbarVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -82,12 +91,18 @@ const Register = () => {
             <TextInput
               label="Senha"
               mode="outlined"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               value={value}
               onBlur={onBlur}
               onChangeText={onChange}
               style={{ marginBottom: 10, width: 300 }}
               error={!!errors.password}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
             />
           )}
         />
@@ -99,13 +114,25 @@ const Register = () => {
           mode="elevated"
           onPress={handleSubmit(handleRegister)}
           style={{ marginTop: 20, width: 300 }}
-          loading={isLoading} // Usa o loading global
+          loading={isLoading}
           disabled={isLoading}
           icon="account-plus"
           buttonColor="#968BAE"
         >
           {isLoading ? 'Registrando...' : 'Registrar'}
         </Button>
+
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={Snackbar.DURATION_SHORT}
+          action={{
+            label: 'Fechar',
+            onPress: () => setSnackbarVisible(false),
+          }}
+        >
+          {snackbarMessage}
+        </Snackbar>
       </Container>
     </SafeAreaView>
   );

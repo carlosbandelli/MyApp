@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import {
-  AnimatedFAB,
-  Snackbar,
-  TextInput,
-  Card,
-  Button,
-} from 'react-native-paper';
-import axios, { AxiosInstance } from 'axios';
+import { ActivityIndicator } from 'react-native';
+import { Snackbar, TextInput, Card, Button, FAB } from 'react-native-paper';
+import { AxiosInstance } from 'axios';
 import {
   Container,
   InputContainer,
@@ -15,14 +9,13 @@ import {
   FormContainer,
   FabContainer,
 } from './styles';
+import { useAuthStore } from '@/src/store/authStore';
 
 interface FabAnimatedProps {
   apiInstance: AxiosInstance;
   endpoint: string;
-  animationDirection?: 'left' | 'right';
   successMessage: string;
   errorMessage: string;
-  onSuccess?: () => void;
 }
 
 export const formatBrlCoin = (value: number): string => {
@@ -35,12 +28,9 @@ export const formatBrlCoin = (value: number): string => {
 const FabAnimated: React.FC<FabAnimatedProps> = ({
   apiInstance,
   endpoint,
-  animationDirection = 'left',
   successMessage,
   errorMessage,
-  onSuccess,
 }) => {
-  const [isExtended, setIsExtended] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -48,17 +38,21 @@ const FabAnimated: React.FC<FabAnimatedProps> = ({
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [fabPosition] = useState(16); // posição padrão do FAB
-
+  const { setIsRefreshing } = useAuthStore((state) => state);
   const handleSave = async () => {
     setIsLoading(true);
+
     try {
       const response = await apiInstance.post(endpoint, {
-        name: name || 'Sem nome',
+        name: (name || 'Sem nome').toUpperCase(),
         totalValue: parseFloat(totalValue.replace(/[^0-9]/g, '')) / 100 || 0.0,
       });
       setSnackbarMessage(successMessage);
+
+      // Acionar o refresh ao concluir com sucesso
+      setIsRefreshing(true);
+
       setShowForm(false);
-      if (onSuccess) onSuccess();
     } catch (error) {
       setSnackbarMessage(errorMessage);
     } finally {
@@ -116,7 +110,7 @@ const FabAnimated: React.FC<FabAnimatedProps> = ({
                   }}
                 />
                 <TextInput
-                  label="Valor total"
+                  label="R$ 0,00"
                   value={totalValue}
                   keyboardType="numeric"
                   onChangeText={handleTotalValueChange}
@@ -166,14 +160,12 @@ const FabAnimated: React.FC<FabAnimatedProps> = ({
       )}
 
       <FabContainer>
-        <AnimatedFAB
+        <FAB
           icon="plus"
-          label=""
-          extended={isExtended}
           onPress={() => setShowForm(!showForm)}
-          visible
-          iconMode="static"
-          animateFrom={animationDirection}
+          size="medium"
+          variant="primary"
+          label="Nova lista"
         />
       </FabContainer>
 

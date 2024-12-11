@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import {
-  AnimatedFAB,
   Snackbar,
   TextInput,
   Card,
   Button,
+  FAB,
+  IconButton,
+  Text,
 } from 'react-native-paper';
 import api from '@/src/api';
 import {
@@ -16,22 +18,20 @@ import {
   InputContainer,
 } from './styles';
 
-// Atualizada a interface para incluir o callback de atualização
 interface FabProductProps {
   listId: string | string[];
   userId: any;
-  onProductAdded?: () => void; // Nova prop para callback de atualização
+  onProductAdded?: () => void;
 }
 
-// Função para formatar o valor como moeda em reais, começando com os centavos
 export const formatBrlCoin = (value: string): string => {
-  const numericValue = value.replace(/\D/g, ''); // Remove qualquer caractere que não seja numérico
-  const centavos = parseInt(numericValue || '0', 10); // Converte para número
+  const numericValue = value.replace(/\D/g, '');
+  const centavos = parseInt(numericValue || '0', 10);
 
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(centavos / 100); // Divide por 100 para formatar como reais
+  }).format(centavos / 100);
 };
 
 const FabProduct: React.FC<FabProductProps> = ({
@@ -42,12 +42,11 @@ const FabProduct: React.FC<FabProductProps> = ({
   console.log('Valor de listId:', listId, 'Tipo:', typeof listId);
   console.log('Valor de userId:', userId, 'Tipo:', typeof userId);
 
-  const [isExtended, setIsExtended] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [quantity, setQuantity] = useState('0');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [fabPosition] = useState(16);
@@ -56,9 +55,9 @@ const FabProduct: React.FC<FabProductProps> = ({
     setIsLoading(true);
     try {
       await api.post('products/', {
-        name: name || 'Sem nome',
-        price: parseFloat(price.replace(/[^0-9]/g, '')) / 100 || 0.0, // Converte para número em reais
-        quantity: parseInt(quantity) || 1,
+        name: (name || 'Sem nome').toUpperCase(),
+        price: parseFloat(price.replace(/[^0-9]/g, '')) / 100 || 0.0,
+        quantity: parseInt(quantity) || 0,
         listId,
         userId,
       });
@@ -66,7 +65,6 @@ const FabProduct: React.FC<FabProductProps> = ({
       setShowForm(false);
       clearForm();
 
-      // Chama o callback de atualização após adicionar o produto com sucesso
       if (onProductAdded) {
         onProductAdded();
       }
@@ -81,7 +79,7 @@ const FabProduct: React.FC<FabProductProps> = ({
   const clearForm = () => {
     setName('');
     setPrice('');
-    setQuantity('');
+    setQuantity('0');
   };
 
   const handleCancel = () => {
@@ -91,7 +89,19 @@ const FabProduct: React.FC<FabProductProps> = ({
 
   const handlePriceChange = (value: string) => {
     const formattedValue = formatBrlCoin(value);
-    setPrice(formattedValue); // Atualiza o estado com o valor formatado
+    setPrice(formattedValue);
+  };
+
+  const handleIncrement = () => {
+    const currentQuantity = parseInt(quantity);
+    setQuantity((currentQuantity + 1).toString());
+  };
+
+  const handleDecrement = () => {
+    const currentQuantity = parseInt(quantity);
+    if (currentQuantity > 0) {
+      setQuantity((currentQuantity - 1).toString());
+    }
   };
 
   return (
@@ -125,7 +135,7 @@ const FabProduct: React.FC<FabProductProps> = ({
                   }}
                 />
                 <TextInput
-                  label="Preço"
+                  label="R$ 0.00"
                   value={price}
                   keyboardType="numeric"
                   onChangeText={handlePriceChange}
@@ -138,20 +148,49 @@ const FabProduct: React.FC<FabProductProps> = ({
                     backgroundColor: '#968BAE',
                   }}
                 />
-                <TextInput
-                  label="Qtd"
-                  value={quantity}
-                  keyboardType="numeric"
-                  onChangeText={setQuantity}
-                  mode="outlined"
+
+                {/* Novo componente de quantidade com IconButtons */}
+                <View
                   style={{
-                    width: '100%',
-                    paddingHorizontal: 20,
-                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: '#968BAE',
+                    borderRadius: 8,
+                    marginVertical: 8,
+                    padding: 8,
+                    width: '100%',
                   }}
-                />
+                >
+                  <IconButton
+                    icon="minus"
+                    mode="contained"
+                    onPress={handleDecrement}
+                    disabled={parseInt(quantity) <= 0}
+                    style={{
+                      backgroundColor:
+                        parseInt(quantity) <= 0 ? '#cccccc' : '#7048D1',
+                    }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      marginHorizontal: 20,
+                      color: '#000000',
+                    }}
+                  >
+                    {quantity}
+                  </Text>
+                  <IconButton
+                    icon="plus"
+                    mode="contained"
+                    onPress={handleIncrement}
+                    style={{
+                      backgroundColor: '#7048D1',
+                    }}
+                  />
+                </View>
+
                 <ButtonContainer>
                   <Button
                     mode="contained"
@@ -189,14 +228,12 @@ const FabProduct: React.FC<FabProductProps> = ({
       )}
 
       <FabContainer>
-        <AnimatedFAB
+        <FAB
           icon="plus"
-          label=""
-          extended={isExtended}
           onPress={() => setShowForm(!showForm)}
-          visible
-          iconMode="static"
-          animateFrom="left"
+          size="medium"
+          variant="primary"
+          label="Nova Produto"
         />
       </FabContainer>
 

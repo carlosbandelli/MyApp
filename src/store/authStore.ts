@@ -14,6 +14,8 @@ interface AuthState {
   clearPassword: () => void;
   setIsLoading: (loading: boolean) => void;
   loadTokenFromStorage: () => Promise<void>; // Alterado para Promise
+  isRefreshing: boolean;
+  setIsRefreshing: (isRefreshing: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -52,4 +54,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false });
     }
   },
+  isRefreshing: false,
+  setIsRefreshing: (isRefreshing) => set({ isRefreshing }),
 }));

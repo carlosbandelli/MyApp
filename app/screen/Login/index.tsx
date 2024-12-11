@@ -1,8 +1,14 @@
 import { Controller, useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
-import { View, Alert } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, TextInput, Text } from 'react-native-paper';
+import {
+  Button,
+  TextInput,
+  Text,
+  Snackbar,
+  IconButton,
+} from 'react-native-paper';
 import { Container, Title } from '../styles';
 import { useRouter } from 'expo-router';
 import { loginUser } from '@/src/auth/auth';
@@ -39,18 +45,15 @@ const Login = () => {
     },
   });
 
-  const {
-    email,
-    password,
-    setEmail,
-    setPassword,
-    setIsLoading,
-    setToken, // Importando setToken do AuthStore
-  } = useAuthStore();
+  const { email, password, setEmail, setPassword, setIsLoading, setToken } =
+    useAuthStore();
 
   const router = useRouter();
 
-  // Efeito para carregar dados do AsyncStorage
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   useEffect(() => {
     const loadStoredData = async () => {
       try {
@@ -74,7 +77,6 @@ const Login = () => {
     loadStoredData();
   }, []);
 
-  // Efeito para sincronizar valores do formulário com o estado
   useEffect(() => {
     const formEmail = getValues('email');
     const formPassword = getValues('password');
@@ -91,25 +93,29 @@ const Login = () => {
   const handleLogin = async (data: LoginFormValues) => {
     try {
       setIsLoading(true);
-      const response = await loginUser(data.email, data.password);
+      const emailUpperCase = data.email.toUpperCase();
+
+      const response = await loginUser(emailUpperCase, data.password);
       console.log('Resposta da API:', response);
 
       if (response.token) {
-        await setToken(response.token); // Usando setToken do AuthStore
+        await setToken(response.token);
 
-        // Salvar email e senha no AsyncStorage se necessário
-        await AsyncStorage.setItem('email', data.email);
+        await AsyncStorage.setItem('email', emailUpperCase);
         await AsyncStorage.setItem('password', data.password);
 
-        Alert.alert('Login bem-sucedido');
+        setSnackbarMessage('Login bem-sucedido');
+        setSnackbarVisible(true);
         router.push('/screen/Home');
       } else {
         console.error('Erro: Token não encontrado na resposta da API');
-        Alert.alert('Erro no login', 'Falha ao autenticar.');
+        setSnackbarMessage('Falha ao autenticar.');
+        setSnackbarVisible(true);
       }
     } catch (error) {
       console.log('Erro ao autenticar:', error);
-      Alert.alert('Erro no login', 'Falha ao autenticar.');
+      setSnackbarMessage('Falha ao autenticar.');
+      setSnackbarVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +152,7 @@ const Login = () => {
             <TextInput
               label="Senha"
               mode="outlined"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               style={{ marginBottom: 10, width: 300 }}
               value={value}
               onChangeText={(text) => {
@@ -154,6 +160,12 @@ const Login = () => {
                 setPassword(text);
               }}
               error={!!errors.password}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
             />
           )}
         />
@@ -173,6 +185,14 @@ const Login = () => {
           Entrar
         </Button>
       </Container>
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </SafeAreaView>
   );
 };

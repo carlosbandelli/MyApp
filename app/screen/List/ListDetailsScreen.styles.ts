@@ -34,3 +34,20 @@ export const ActionsColumn = styled(DataTable.Cell)`
   flex-direction: row;
   align-items: center;
 `;
+
+export const StyledTotalValue = styled.Text<{ totalValue: number | undefined }>`
+  margin-bottom: 16px;
+  color: ${(props) => {
+    if (props.totalValue !== undefined && props.totalValue >= 100) {
+      return '#63A002';
+    } else if (props.totalValue !== undefined && props.totalValue >= 40) {
+      return '#FFDE3F';
+    } else if (props.totalValue !== undefined && props.totalValue >= 1) {
+      return '#769CDF';
+    } else {
+      return '#FF5449';
+    }
+  }};
+  font-weight: bold 800;
+  font-size: 18px;
+`;
